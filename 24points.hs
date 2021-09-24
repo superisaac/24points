@@ -1,11 +1,19 @@
 import Data.List (permutations)
+import Text.Read (readEither)
+import Control.Monad (foldM)
+import Control.Exception (try, catch)
 import System.Environment (getArgs)
 import Control.Applicative (liftA2)
 
--- utility functions
-parseInt :: String -> Int
-parseInt x = read x::Int
+-- data structures
+data BinOp = Add | Sub | Mul | Div
+--           deriving Show
 
+data FormulaTree = Num Int |
+                   Arith FormulaTree BinOp FormulaTree
+--                   deriving Show
+
+-- utility functions
 combinations :: [a] -> Int -> [[a]]
 combinations arr n = mapM (const arr) [1..n]
 
@@ -28,12 +36,8 @@ findFirst condition (h:tail) =
     Just x -> Just x
     _ -> findFirst condition tail
 
--- data structures
-data BinOp = Add | Sub | Mul | Div
 
-data FormulaTree = Num Int |
-                   Arith FormulaTree BinOp FormulaTree
-
+-- show child formula
 showChildMul :: FormulaTree -> String
 showChildMul child =
   case child of
@@ -106,11 +110,29 @@ calcNumbersAndOps :: [Int] -> [BinOp] -> Maybe FormulaTree
 calcNumbersAndOps nums ops =
   findFirst calcTree (possibleTrees nums ops)
 
+parseNumbers :: [String] -> Either String [Int]
+parseNumbers args =
+  foldM parseNum [] args
+  where
+    parseNum :: [Int] -> String  -> Either String [Int]
+    parseNum res x =
+      case readEither x::Either String Int of
+        Left e -> Left e
+        Right number -> Right (res ++ [number])
+
+usage = do
+  putStrLn "usage: 24points a b c d"
+  putStrLn "  where a, b, c, d are numbers in [1-9]"
+
+calc numbers = do
+  putStrLn $ show $ calcNumbers numbers
+
 -- Usage: ./24points a b c d
 -- where a b c d are numbers [1-9]
 main = do
   args <- getArgs
-  -- TODO: senity check against command line arguments
-  let numbers = map parseInt args
-  let res = calcNumbers numbers
-  print(res)
+  case parseNumbers args of
+    Left e -> do
+      usage
+      error e
+    Right numbers -> calc numbers
