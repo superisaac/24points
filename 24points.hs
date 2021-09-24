@@ -32,44 +32,43 @@ findFirst condition (h:tail) =
 data BinOp = Add | Sub | Mul | Div
 
 data FormulaTree = Num Int |
-                   Node FormulaTree BinOp FormulaTree
-
+                   Arith FormulaTree BinOp FormulaTree
 
 showChildMul :: FormulaTree -> String
 showChildMul child =
   case child of
-    (Node left Add right) -> "(" <> (show child) <> ")"
-    (Node left Sub right) -> "(" <> (show child) <> ")"
-    (Node left Div right) -> "(" <> (show child) <> ")"
+    (Arith left Add right) -> "(" <> (show child) <> ")"
+    (Arith left Sub right) -> "(" <> (show child) <> ")"
+    (Arith left Div right) -> "(" <> (show child) <> ")"
     _ -> (show child)
 
 showChildDiv :: FormulaTree -> String
 showChildDiv child =
   case child of
-    (Node left op right) -> "(" <> (show child) <> ")"
+    (Arith left op right) -> "(" <> (show child) <> ")"
     _ -> (show child)
 
 showChildAddSub :: FormulaTree -> String
 showChildAddSub child =
   case child of
-    (Node left Add right) -> "(" <> (show child) <> ")"
-    (Node left Sub right) -> "(" <> (show child) <> ")"
+    (Arith left Add right) -> "(" <> (show child) <> ")"
+    (Arith left Sub right) -> "(" <> (show child) <> ")"
     _ -> (show child)
 
 instance Show FormulaTree where
   show (Num num) = show num
-  show (Node left Add right) = (showChildAddSub left) <> " + " <> (showChildAddSub right)
-  show (Node left Sub right) = (showChildAddSub left) <> " - " <> (showChildAddSub right)
-  show (Node left Mul right) = (showChildMul left) <> " * " <> (showChildMul right)
-  show (Node left Div right) = (showChildDiv left) <> " / " <> (showChildDiv right)
+  show (Arith left Add right) = (showChildAddSub left) <> " + " <> (showChildAddSub right)
+  show (Arith left Sub right) = (showChildAddSub left) <> " - " <> (showChildAddSub right)
+  show (Arith left Mul right) = (showChildMul left) <> " * " <> (showChildMul right)
+  show (Arith left Div right) = (showChildDiv left) <> " / " <> (showChildDiv right)
 
 -- evaluate the formula tree
 evaluateTree :: FormulaTree -> Maybe Int
 evaluateTree (Num num) = Just num
-evaluateTree (Node left Add right) = liftA2 (+) (evaluateTree left) (evaluateTree right)
-evaluateTree (Node left Sub right) = liftA2 (-) (evaluateTree left) (evaluateTree right)
-evaluateTree (Node left Mul right) = liftA2 (*) (evaluateTree left) (evaluateTree right)
-evaluateTree (Node left Div right) = foldMaybe $ liftA2 safediv (evaluateTree left) (evaluateTree right)
+evaluateTree (Arith left Add right) = liftA2 (+) (evaluateTree left) (evaluateTree right)
+evaluateTree (Arith left Sub right) = liftA2 (-) (evaluateTree left) (evaluateTree right)
+evaluateTree (Arith left Mul right) = liftA2 (*) (evaluateTree left) (evaluateTree right)
+evaluateTree (Arith left Div right) = foldMaybe $ liftA2 safediv (evaluateTree left) (evaluateTree right)
 
 calcTree :: FormulaTree -> Maybe FormulaTree
 calcTree tree =
@@ -90,9 +89,9 @@ possibleTrees numbers ops =
     op3 = ops!!2
   in
     [
-      Node (Node (Node a op1 b) op2 c) op3 d,
-      Node (Node a op1 b) op2 (Node c op3 d),
-      Node a op1 (Node b op2 (Node c op3 d))
+      Arith (Arith (Arith a op1 b) op2 c) op3 d,
+      Arith (Arith a op1 b) op2 (Arith c op3 d),
+      Arith a op1 (Arith b op2 (Arith c op3 d))
     ]
 
 calcNumbers :: [Int] -> Maybe FormulaTree
