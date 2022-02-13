@@ -1,13 +1,5 @@
 # 24points
-a 24 points game in Haskell
+24 points game is a good start point to learn functional languages, To implement a 24 points game needs Algebraic Data Type, pattern match and list processing, these features are well provied by modern, static-typed functional languages such as Haskell and OCaml.
 
-# build
-```
-ghc 24points.hs
-```
 
-# usage
-```
-./24points 6 2 1 7
-```
 

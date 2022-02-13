@@ -1,10 +1,8 @@
-open Printf;;
-
 type binop = Add | Sub | Mul | Div;;
 
-type formula_tree =
+type formula =
   | Num of int
-  | Arith of formula_tree * binop * formula_tree;;
+  | Arith of formula * binop * formula;;
 
 let rec permutations lst =
   let rec insert x l = match l with
@@ -22,10 +20,32 @@ let b_to_str op =
   | Mul -> "*"
   | Div -> "/";;
 
-let rec f_to_str f =
+let rec formula_to_str f =
+  let mul_to_str f1 =
+    match f1 with
+    | Arith (_, Add, _) -> "(" ^ (formula_to_str f1) ^ ")"
+    | Arith (_, Sub, _) -> "(" ^ (formula_to_str f1) ^ ")"
+    | Arith (_, Div, _) -> "(" ^ (formula_to_str f1) ^ ")"
+    | _ -> formula_to_str f1
+  in
+  let add_sub_to_str f1 =
+    match f1 with
+    | Arith (_, Add, _) -> "(" ^ (formula_to_str f1) ^ ")"
+    | Arith (_, Sub, _) -> "(" ^ (formula_to_str f1) ^ ")"
+    | _ -> formula_to_str f1
+  in
+  let div_to_str f1 =
+    match f1 with
+    | Num x -> string_of_int x
+    | _ -> "(" ^ (formula_to_str f1) ^ ")"
+  in
   match f with
-  | Num x -> sprintf "%d" x
-  | Arith (left, bop, right) -> sprintf "(%s %s %s)" (b_to_str bop) (f_to_str left) (f_to_str right)
+  | Num x -> string_of_int x
+  | Arith (left, Add, right) -> (add_sub_to_str left) ^ " + " ^ (add_sub_to_str right)
+  | Arith (left, Sub, right) -> (add_sub_to_str left) ^ " - " ^ (add_sub_to_str right)
+  | Arith (left, Mul, right) -> (mul_to_str left) ^ " * " ^ (mul_to_str right)
+  | Arith (left, Div, right) -> (div_to_str left) ^ " * " ^ (div_to_str right)
+
 
 let fapply op a  b =
   match (a, b) with
@@ -88,7 +108,7 @@ let run_all inputs =
   let trees = List.flatten ftree1 in
   let found_f = List.find_map check trees in
   match found_f with
-  | Some f -> print_endline(f_to_str f)
+  | Some f -> print_endline(formula_to_str f)
   | None -> print_endline "None"
 
 let () =
