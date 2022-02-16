@@ -2,11 +2,12 @@
 24points game in ocaml
 
 # build
-```
-dune build
+```shell
+% eval $(opam env)
+% dune build
 ```
 
 # usage
-```
-dune exec ./24points.exe 6 2 3 7
+```shell
+% dune exec ./24points.exe 6 2 3 7
 ```
