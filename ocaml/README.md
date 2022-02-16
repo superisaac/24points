@@ -9,5 +9,5 @@
 
 # usage
 ```shell
-% dune exec ./24points.exe 6 2 3 7
+% dune exec ./twentyfour.exe 6 2 3 7
 ```

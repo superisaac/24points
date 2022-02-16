@@ -12,7 +12,7 @@ let rec permutations (lst:'a list) : 'a list list =
 (* run the whole search task *)
 let run_all (inputs:int list) =
   (* intermediate variables *)
-  let perms : int list list =
+  let numbers_list : int list list =
     permutations inputs
   in
 
@@ -21,10 +21,10 @@ let run_all (inputs:int list) =
   in
 
   let found_f : F.formula option =
-    perms
+    numbers_list
     |> List.map (F.build_formula_list opslist)   (* formula list list *)
     |> List.flatten                              (* flatten to formula list *)
-    |> List.find_map F.check_formula             (* formla option *)
+    |> List.find_map F.check                     (* formla option *)
   in
 
   match found_f with

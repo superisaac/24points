@@ -33,65 +33,71 @@ let rec simple_to_str (f: formula) : string =
 
 (* formula to str, remove braket as best as possible *)
 let rec to_str (f: formula) : string =
-  (* wrap the formula string with a pair of braket *)
+  (* wrap the formula string with a pair of braket to keep its
+     arithmatic priority. *)
   let braket_str (f1: formula): string =
     "(" ^ (to_str f1) ^ ")"
   in
 
-  (* top level formula f is Multiply only another mul child can unwrap
-     the braket *)
-  let mul_to_str f1 =
+  (* up level formula f is Multiply, only another multiply child can
+     unwrap the braket *)
+  let mul_to_str (f1: formula): string =
     match f1 with
-    | Arith (_, Add, _) -> braket_str f1
-    | Arith (_, Sub, _) -> braket_str f1
-    | Arith (_, Div, _) -> braket_str f1
-    | _ -> to_str f1
-  in
-
-  (* top level formula f is Add|Sub which are low priority
-     operators. so the child nodes may unwrap the braket around. *)
-  let add_sub_to_str f1 =
-    match f1 with
-    | Arith (_, Add, _) -> braket_str f1
-    | Arith (_, Sub, _) -> braket_str f1
-    | _ -> to_str f1
-  in
-
-  (* top level formula f is Div, only leafe node is braket
-     unwrappable *)
-  let div_to_str f1 =
-    match f1 with
-    | Num x -> string_of_int x
+    | Num _ -> to_str f1
+    | Arith (_, Mul, _) -> to_str f1
     | _ -> braket_str f1
   in
 
-  let concat child_fn left op right =
-    (child_fn left) ^ " " ^ (B.to_str op) ^ " " ^ (child_fn right)
+  (* up level formula f is Sub and this formula is the right of sub operator. so the child nodes may unwrap the braket around. *)
+  let sub_right_to_str f1 =
+    match f1 with
+    | Arith (_, Add, _) -> braket_str f1
+    | Arith (_, Sub, _) -> braket_str f1
+    | _ -> to_str f1
+  in
+
+  (* up level formula f is Div, only leafe node is braket
+     unwrappable *)
+  let div_to_str f1 =
+    match f1 with
+    | Num _ -> to_str f1
+    | _ -> braket_str f1
+  in
+
+  (* apply fn to both left and right child and concat them with op *)
+  let concat : (formula -> string) -> formula -> B.binop -> formula -> string =
+    fun fn left op right ->
+    String.concat " " [fn left; B.to_str op; fn right]
+  in
+
+  (* join a list of string with spaces *)
+  let join_str (slst: string list): string =
+    String.concat " " slst
   in
 
   match f with
   | Num x -> string_of_int x
-  | Arith (left, Add, right) -> concat add_sub_to_str left Add right
-  | Arith (left, Sub, right) -> concat add_sub_to_str left Sub right
+  | Arith (left, Add, right) -> concat to_str left Add right
+  | Arith (left, Sub, right) -> join_str [to_str left;
+                                          B.to_str Sub;
+                                          sub_right_to_str right]
   | Arith (left, Mul, right) -> concat mul_to_str left Mul right
   | Arith (left, Div, right) -> concat div_to_str left Div right
 
 (* calculate the formula to get an optional int result *)
-let rec calc_fomula (f:formula):int option =
+let rec calc (f:formula):int option =
   match f with
   | Num x -> Some x
-  | Arith (left, Add, right) -> apply_opt (+) (calc_fomula left) (calc_fomula right)
-  | Arith (left, Sub, right) -> apply_opt (-) (calc_fomula left) (calc_fomula right)
-  | Arith (left, Mul, right) -> apply_opt (fun x y -> x * y) (calc_fomula left) (calc_fomula right)
-  | Arith (left, Div, right) -> div_opt (calc_fomula left) (calc_fomula right)
+  | Arith (left, Add, right) -> apply_opt (+) (calc left) (calc right)
+  | Arith (left, Sub, right) -> apply_opt (-) (calc left) (calc right)
+  | Arith (left, Mul, right) -> apply_opt ( * ) (calc left) (calc right)
+  | Arith (left, Div, right) -> div_opt (calc left) (calc right)
 
 (* check whether the result of calculation is 24 or not *)
-let check_formula (f:formula):formula option =
-  let result = calc_fomula f in
-  match result with
-  | None -> None
-  | Some 24 -> Some f
-  | Some _ -> None
+let check (f: formula) : formula option =
+  match calc f with
+  | Some 24 -> Some f (* here we got the answer, then lift it *)
+  | _ -> None
 
 (* for each sample of number list and binop list there are 3 types of
    formula trees. *)
@@ -108,12 +114,11 @@ let build_formula_types : (int list -> B.binop list -> formula list) =
    Arith (Arith (a, op0, b), op1, Arith (c, op2, d));
    Arith (a, op0, Arith (b, op1, Arith (c, op2, d)))]
 
-
 (* build all possible formula list *)
 let build_formula_list : (B.binop list list -> int list -> formula list) =
-  (* numbers is placed to the last params to make currify easy *)
+  (* numbers is placed behind opslist to make currify easy *)
   fun opslist numbers ->
-  let alist =
+  let alist : formula list list =
     List.map (build_formula_types numbers) opslist
   in
   List.concat alist
