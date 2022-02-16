@@ -10,30 +10,24 @@ let rec permutations (lst:'a list) : 'a list list =
       | _ -> [lst]
 
 (* run the whole search task *)
-let run_all (inputs:int list) =
+let search (inputs:int list) : F.formula option =
   (* intermediate variables *)
-  let numbers_list : int list list =
-    permutations inputs
-  in
-
   let opslist : B.binop list list =
     B.gen_binops 3
   in
 
-  let found_f : F.formula option =
-    numbers_list
-    |> List.map (F.build_formula_list opslist)   (* formula list list *)
-    |> List.flatten                              (* flatten to formula list *)
-    |> List.find_map F.check                     (* formla option *)
-  in
-
-  match found_f with
-  | Some f -> print_endline(F.to_str f)
-  | None -> print_endline "None"
+  inputs
+  |> permutations                              (* int list list *)
+  |> List.map (F.build_formula_list opslist)   (* formula list list *)
+  |> List.flatten                              (* flatten to formula list *)
+  |> List.find_map F.check                     (* formula option *)
 
 let () =
   let inputs = Sys.argv
                |> fun x -> Array.sub x 1 4
                |> Array.to_list
                |> List.map int_of_string in
-  run_all inputs
+  match search inputs with
+  | Some f -> print_endline(F.to_str f)
+  | None -> print_endline "None"
+

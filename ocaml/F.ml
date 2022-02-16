@@ -24,44 +24,45 @@ let apply_opt: (('a -> 'a -> 'a) -> 'a option -> 'a option -> 'a option) =
 (* formula tree *)
 type formula =
   | Num of int   (* leaf *)
-  | Arith of formula * B.binop * formula;;  (* binary arithmatic formula *)
+  | Arith of formula * B.binop * formula  (* binary arithmatic formula *)
 
+(* turn formula to a infix lisp like string representation *)
 let rec simple_to_str (f: formula) : string =
   match f with
   | Num x -> string_of_int x
   | Arith (left, op, right) -> sprintf "(%s %s %s)" (simple_to_str left) (B.to_str op) (simple_to_str right)
 
-(* formula to str, remove braket as best as possible *)
+(* formula to str, remove bracket as best as possible *)
 let rec to_str (f: formula) : string =
-  (* wrap the formula string with a pair of braket to keep its
+  (* wrap the formula string with a pair of bracket to keep its
      arithmatic priority. *)
-  let braket_str (f1: formula): string =
+  let bracket_str (f1: formula): string =
     "(" ^ (to_str f1) ^ ")"
   in
 
   (* up level formula f is Multiply, only another multiply child can
-     unwrap the braket *)
+     unwrap the bracket *)
   let mul_to_str (f1: formula): string =
     match f1 with
     | Num _ -> to_str f1
     | Arith (_, Mul, _) -> to_str f1
-    | _ -> braket_str f1
+    | _ -> bracket_str f1
   in
 
-  (* up level formula f is Sub and this formula is the right of sub operator. so the child nodes may unwrap the braket around. *)
+  (* up level formula f is Sub and this formula is the right of sub operator. so the child nodes may unwrap the bracket around. *)
   let sub_right_to_str f1 =
     match f1 with
-    | Arith (_, Add, _) -> braket_str f1
-    | Arith (_, Sub, _) -> braket_str f1
+    | Arith (_, Add, _) -> bracket_str f1
+    | Arith (_, Sub, _) -> bracket_str f1
     | _ -> to_str f1
   in
 
-  (* up level formula f is Div, only leafe node is braket
+  (* up level formula f is Div, only leafe node is bracket
      unwrappable *)
   let div_to_str f1 =
     match f1 with
     | Num _ -> to_str f1
-    | _ -> braket_str f1
+    | _ -> bracket_str f1
   in
 
   (* apply fn to both left and right child and concat them with op *)
