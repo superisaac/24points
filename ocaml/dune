@@ -1,2 +1,4 @@
 (executable
- (name twentyfour))
+ (name twentyfour)
+  (libraries zarith))
+

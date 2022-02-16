@@ -3,19 +3,21 @@
 open Printf;;
 
 (* utility functions *)
+
+let num_24 = Q.of_int 24
+let num_zero = Q.zero
+
 (* div function to prevent zero division *)
-let div_opt: (int option -> int option -> int option) =
+let div_opt: (Q.t option -> Q.t option -> Q.t option) =
   fun a b ->
   match (a, b) with
-  | (Some _, Some 0) -> None
-  | (Some x, Some y) ->
-     if x mod y == 0
-     then Some (x / y)
-     else None
+  | (Some x, Some y) -> if Q.equal y num_zero
+                        then None
+                        else Some (Q.(/) x y)
   | _ -> None
 
 (* apply a two params function to optional params and generate optional result *)
-let apply_opt: (('a -> 'a -> 'a) -> 'a option -> 'a option -> 'a option) =
+let apply_opt: ((Q.t -> Q.t -> Q.t) -> Q.t option -> Q.t option -> Q.t option) =
   fun op a b ->
   match (a, b) with
   | (Some x, Some y) -> Some (op x y)
@@ -86,18 +88,20 @@ let rec to_str (f: formula) : string =
   | Arith (left, Div, right) -> concat div_to_str left Div right
 
 (* calculate the formula to get an optional int result *)
-let rec calc (f:formula):int option =
+let rec calc (f:formula):Q.t option =
   match f with
-  | Num x -> Some x
-  | Arith (left, Add, right) -> apply_opt (+) (calc left) (calc right)
-  | Arith (left, Sub, right) -> apply_opt (-) (calc left) (calc right)
-  | Arith (left, Mul, right) -> apply_opt ( * ) (calc left) (calc right)
+  | Num x -> Some (Q.of_int x)
+  | Arith (left, Add, right) -> apply_opt Q.(+) (calc left) (calc right)
+  | Arith (left, Sub, right) -> apply_opt Q.(-) (calc left) (calc right)
+  | Arith (left, Mul, right) -> apply_opt Q.( * ) (calc left) (calc right)
   | Arith (left, Div, right) -> div_opt (calc left) (calc right)
 
 (* check whether the result of calculation is 24 or not *)
 let check (f: formula) : formula option =
   match calc f with
-  | Some 24 -> Some f (* here we got the answer, then lift it *)
+  | Some s -> if Q.equal s num_24
+              then Some f (* here we got the answer, then lift it *)
+              else None
   | _ -> None
 
 (* for each sample of number list and binop list there are 3 types of
