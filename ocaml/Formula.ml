@@ -4,6 +4,8 @@ open Printf;;
 
 (* utility functions *)
 
+module B = Binop
+
 let num_24 = Q.of_int 24
 let num_zero = Q.zero
 
