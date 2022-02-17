@@ -40,7 +40,7 @@ let rec simple_to_str (f: formula) : string =
 let rec to_str (f: formula) : string =
   (* wrap the formula string with a pair of bracket to keep its
      arithmatic priority. *)
-  let bracket_str (f1: formula): string =
+  let wrap_str (f1: formula): string =
     "(" ^ (to_str f1) ^ ")"
   in
 
@@ -50,27 +50,27 @@ let rec to_str (f: formula) : string =
     match f1 with
     | Num _ -> to_str f1
     | Arith (_, Mul, _) -> to_str f1
-    | _ -> bracket_str f1
+    | _ -> wrap_str f1
   in
 
   (* up level formula f is Sub and this formula is the right of sub operator. so the child nodes may unwrap the bracket around. *)
   let sub_right_to_str f1 =
     match f1 with
-    | Arith (_, Add, _) -> bracket_str f1
-    | Arith (_, Sub, _) -> bracket_str f1
+    | Arith (_, Add, _) -> wrap_str f1
+    | Arith (_, Sub, _) -> wrap_str f1
     | _ -> to_str f1
   in
 
-  (* up level formula f is Div, only leafe node is bracket
+  (* up level formula of f is Div, only leafe node is bracket
      unwrappable *)
   let div_to_str f1 =
     match f1 with
     | Num _ -> to_str f1
-    | _ -> bracket_str f1
+    | _ -> wrap_str f1
   in
 
   (* apply fn to both left and right child and concat them with op *)
-  let concat : (formula -> string) -> formula -> B.binop -> formula -> string =
+  let apply_concat : (formula -> string) -> formula -> B.binop -> formula -> string =
     fun fn left op right ->
     String.concat " " [fn left; B.to_str op; fn right]
   in
@@ -82,15 +82,15 @@ let rec to_str (f: formula) : string =
 
   match f with
   | Num x -> string_of_int x
-  | Arith (left, Add, right) -> concat to_str left Add right
+  | Arith (left, Add, right) -> apply_concat to_str left Add right
   | Arith (left, Sub, right) -> join_str [to_str left;
                                           B.to_str Sub;
                                           sub_right_to_str right]
-  | Arith (left, Mul, right) -> concat mul_to_str left Mul right
-  | Arith (left, Div, right) -> concat div_to_str left Div right
+  | Arith (left, Mul, right) -> apply_concat mul_to_str left Mul right
+  | Arith (left, Div, right) -> apply_concat div_to_str left Div right
 
-(* calculate the formula to get an optional int result *)
-let rec calc (f:formula):Q.t option =
+(* calculate the formula to get an optional rational result *)
+let rec calc (f:formula) : Q.t option =
   match f with
   | Num x -> Some (Q.of_int x)
   | Arith (left, Add, right) -> apply_opt Q.(+) (calc left) (calc right)
@@ -98,7 +98,7 @@ let rec calc (f:formula):Q.t option =
   | Arith (left, Mul, right) -> apply_opt Q.( * ) (calc left) (calc right)
   | Arith (left, Div, right) -> div_opt (calc left) (calc right)
 
-(* check whether the result of calculation is 24 or not *)
+(* check if the result of calculation is 24 *)
 let check (f: formula) : formula option =
   match calc f with
   | Some s -> if Q.equal s num_24

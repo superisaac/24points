@@ -41,12 +41,11 @@ let search_all (inputs:int list) : F.formula option list =
   |> List.map F.check                          (* formula option *)
 ;;
 
-(* print the formula tree both in form of simplified s-expr and tidied
-   s-expr *)
+(* print the formula tree both in form of simplified s-expr like and
+   tidied s-expr like statements *)
 let print_formula_opt fopt =
   match fopt with
-  | Some f -> sprintf "%s <==> %s" (F.to_str f) (F.simple_to_str f)
-              |> print_endline
+  | Some f -> printf "%s <==> %s\n" (F.to_str f) (F.simple_to_str f)
   | _ -> ()
 
 let () =
