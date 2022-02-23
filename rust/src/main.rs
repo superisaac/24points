@@ -1,10 +1,11 @@
-use std::fmt;
-//use num::integer::div_rem;
-use num::rational::Ratio;
+use crate::Binop::{Add, Div, Mul, Sub};
+use crate::Formula::{Arith, Num};
 use itertools::Itertools;
+use num::rational::Ratio;
+use std::fmt;
 
 // data structures
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 enum Binop {
     Add,
     Sub,
@@ -15,25 +16,23 @@ enum Binop {
 impl fmt::Display for Binop {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Binop::Add => "+",
-            Binop::Sub => "-",
-            Binop::Mul => "*",
-            Binop::Div => "/"
+            Add => "+",
+            Sub => "-",
+            Mul => "*",
+            Div => "/",
         };
         write!(f, "{}", s)
     }
 }
 
-fn binop_combinations(n:u32) -> Vec<Vec<Binop>> {
+fn binop_combinations(n: u32) -> Vec<Vec<Binop>> {
     match n {
-        0 => vec![vec![], vec![], vec![], vec![]],
-        1 =>
-            vec![vec![Binop::Add], vec![Binop::Sub], vec![Binop::Mul], vec![Binop::Div]],
+        0 => vec![vec![]],
         x => {
             let mut dest_items: Vec<Vec<Binop>> = vec![];
-            let last_items = binop_combinations(x-1);
+            let last_items = binop_combinations(x - 1);
             for item in last_items {
-                for c in [Binop::Add, Binop::Sub, Binop::Mul, Binop::Div] {
+                for c in [Add, Sub, Mul, Div] {
                     let mut det = vec![c];
                     det.extend_from_slice(&item);
                     dest_items.push(det);
@@ -53,41 +52,77 @@ enum Formula {
 impl fmt::Display for Formula {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Formula::Num(x) => write!(f, "{}", x),
-            Formula::Arith(left, op, right) =>
-                write!(f, "({} {} {})", op, *left, *right)
+            Num(x) => write!(f, "{}", x),
+            Arith(left, op, right) => write!(f, "({} {} {})", op, *left, *right),
         }
     }
 }
 
-fn calc(f:&Formula) -> Option<Ratio<i64>> {
+fn calc(f: &Formula) -> Option<Ratio<i64>> {
     match &*f {
-        Formula::Num(x) => Some(Ratio::from_integer(*x)),
-        Formula::Arith(left, Binop::Add, right) => n_add(calc(&left), calc(&right)),
-        Formula::Arith(left, Binop::Sub, right) => n_sub(calc(&left), calc(&right)),
-        Formula::Arith(left, Binop::Mul, right) => n_mul(calc(&left), calc(&right)),
-        Formula::Arith(left, Binop::Div, right) => n_div(calc(&left), calc(&right)),
+        Num(x) => Some(Ratio::from_integer(*x)),
+        Arith(left, Add, right) => n_add(calc(&left), calc(&right)),
+        Arith(left, Sub, right) => n_sub(calc(&left), calc(&right)),
+        Arith(left, Mul, right) => n_mul(calc(&left), calc(&right)),
+        Arith(left, Div, right) => n_div(calc(&left), calc(&right)),
+    }
+}
+
+fn wrap_repr(f: Formula) -> String {
+    format!("({})", repr(f))
+}
+
+fn sub_right_repr(right: Formula) -> String {
+    match right {
+        Arith(_, Add, _) => wrap_repr(right),
+        Arith(_, Sub, _) => wrap_repr(right),
+        _ => repr(right),
+    }
+}
+
+fn mul_repr(f: Formula) -> String {
+    match f {
+        Num(_) => repr(f),
+        Arith(_, Mul, _) => repr(f),
+        _ => wrap_repr(f),
+    }
+}
+
+fn div_repr(f: Formula) -> String {
+    match f {
+        Num(_) => repr(f),
+        _ => wrap_repr(f),
+    }
+}
+
+fn repr(f: Formula) -> String {
+    match f {
+        Num(x) => x.to_string(),
+        Arith(left, Add, right) => format!("{} {} {}", repr(*left), Add, repr(*right)),
+        Arith(left, Sub, right) => format!("{} {} {}", repr(*left), Sub, sub_right_repr(*right)),
+        Arith(left, Mul, right) => format!("{} {} {}", mul_repr(*left), Mul, mul_repr(*right)),
+        Arith(left, Div, right) => format!("{} {} {}", div_repr(*left), Div, div_repr(*right)),
     }
 }
 
 fn n_add(a: Option<Ratio<i64>>, b: Option<Ratio<i64>>) -> Option<Ratio<i64>> {
     match (a, b) {
-        (Some(x), Some(y)) => Some(x+y),
-        _ => None
+        (Some(x), Some(y)) => Some(x + y),
+        _ => None,
     }
 }
 
 fn n_sub(a: Option<Ratio<i64>>, b: Option<Ratio<i64>>) -> Option<Ratio<i64>> {
     match (a, b) {
-        (Some(x), Some(y)) => Some(x-y),
-        _ => None
+        (Some(x), Some(y)) => Some(x - y),
+        _ => None,
     }
 }
 
 fn n_mul(a: Option<Ratio<i64>>, b: Option<Ratio<i64>>) -> Option<Ratio<i64>> {
     match (a, b) {
-        (Some(x), Some(y)) => Some(x*y),
-        _ => None
+        (Some(x), Some(y)) => Some(x * y),
+        _ => None,
     }
 }
 
@@ -97,78 +132,61 @@ fn n_div(a: Option<Ratio<i64>>, b: Option<Ratio<i64>>) -> Option<Ratio<i64>> {
             if y == Ratio::from_integer(0) {
                 None
             } else {
-                Some( x / y)
+                Some(x / y)
             }
-        },
-        _ => None
+        }
+        _ => None,
     }
 }
 
-fn fabox(left: Box<Formula>, op: Binop, right: Box<Formula>) -> Box<Formula> {
-    Box::new(Formula::Arith(left, op, right))
+fn arith_box(left: Box<Formula>, op: Binop, right: Box<Formula>) -> Box<Formula> {
+    Box::new(Arith(left, op, right))
 }
 
 fn build_formula_types<'a>(numbers: Vec<i64>, ops: Vec<Binop>) -> Vec<Formula> {
     let (op0, op1, op2) = (ops[0], ops[1], ops[2]);
-
-    let fnbox = {|n| Box::new(Formula::Num(numbers[n]))};
-
+    let num_box = { |n| Box::new(Num(numbers[n])) };
 
     vec![
-        Formula::Arith(
-            fabox(
-                fabox(
-                    fnbox(0),
-                    op0,
-                    fnbox(1)),
-                op1,
-                fnbox(2)),
+        Arith(
+            arith_box(arith_box(num_box(0), op0, num_box(1)), op1, num_box(2)),
             op2,
-            fnbox(3)),
-
-        Formula::Arith (
-            fabox(
-                fnbox(0),
-                op0,
-                fnbox(1)),
+            num_box(3),
+        ),
+        Arith(
+            arith_box(num_box(0), op0, num_box(1)),
             op1,
-            fabox(
-                fnbox(2),
-                op2,
-                fnbox(3))),
-
-        Formula::Arith(
-            fnbox(0),
+            arith_box(num_box(2), op2, num_box(3)),
+        ),
+        Arith(
+            num_box(0),
             op0,
-            fabox(
-                fnbox(1),
-                op1,
-                fabox(
-                    fnbox(2),
-                    op2,
-                    fnbox(3)))),
-
+            arith_box(num_box(1), op1, arith_box(num_box(2), op2, num_box(3))),
+        ),
     ]
 }
 
 fn main() {
-    let inputs = vec![1, 3, 4, 6];
-    let perms = inputs.into_iter().permutations(4);
-    for numbers in perms {
+    // extract the arguments
+    let args_iter = std::env::args().skip(1);
+    // inputs is an array of four integers
+    let inputs = args_iter.map(|arg| arg.parse::<i64>().unwrap());
+    // permutations of inputs, a 24x4 matrix
+    for numbers in inputs.permutations(4) {
+        // all combinations of bin ops, [[+, -, *], [+, -, /], ...]
+        // the count is 64
         let bop_comb = binop_combinations(3);
         for ops in bop_comb {
             for f in build_formula_types(numbers.clone(), ops) {
                 match calc(&f) {
                     Some(x) => {
                         if x == Ratio::from_integer(24) {
-                            println!("got it {}", f)
+                            println!("{}", repr(f))
                         }
-                    },
-                    _ => ()
+                    }
+                    _ => (),
                 }
-
             }
         }
     }
-
 }
