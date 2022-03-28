@@ -1,5 +1,5 @@
-use crate::Binop::{Add, Div, Mul, Sub};
-use crate::Formula::{Arith, Num};
+use crate::Binop::*;
+use crate::Formula::*;
 use itertools::Itertools;
 use num::rational::Ratio;
 use std::fmt;
