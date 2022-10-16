@@ -1,6 +1,10 @@
-import std/options
-import std/strformat
-import std/sequtils
+import os
+import strutils
+import options
+import strformat
+import sequtils
+import rationals
+
 import std/enumerate
 
 proc permutations[T](arr: seq[T]): seq[seq[T]] =
@@ -20,6 +24,8 @@ proc permutations[T](arr: seq[T]): seq[seq[T]] =
       result.add(@[e])
 
 type
+  RNum = Rational[int]
+
   Binop = enum
     opAdd
     opSub
@@ -33,11 +39,13 @@ type
   Formula = ref object
     case kind: FormulaKind
     of fNum:
-      value: int
+      value: RNum
     of fArith:
       op: Binop
       left: Formula
       right: Formula
+
+let zero = Rational[int](num:0, den: 1)
 
 # binop methods
 proc `$`(op:Binop): string =
@@ -50,7 +58,6 @@ proc `$`(op:Binop): string =
     result = "*"
   of opDiv:
     result = "/"
-
 
 proc binopCombinations(n: int) : seq[seq[Binop]] =
   if n <= 0:
@@ -65,37 +72,37 @@ proc binopCombinations(n: int) : seq[seq[Binop]] =
 proc `$`(f:Formula): string =
   case f.kind
   of fNum:
-    result = $(f.value)
+    result = $(f.value.toInt)
   of fArith:
     result = fmt"({f.left} {f.op} {f.right})"
 
-proc calcAdd(a: Option[int], b: Option[int]) : Option[int] =
+proc calcAdd(a: Option[RNum], b: Option[RNum]) : Option[RNum] =
   if a.isSome and b.isSome:
     return some(a.get() + b.get())
   else:
-    return none(int)
+    return none(RNum)
 
-proc calcSub(a: Option[int], b: Option[int]) : Option[int] =
+proc calcSub(a: Option[RNum], b: Option[RNum]) : Option[RNum] =
   if a.isSome and b.isSome:
     return some(a.get() - b.get())
   else:
-    return none(int)
+    return none(RNum)
 
-proc calcMul(a: Option[int], b: Option[int]) : Option[int] =
+proc calcMul(a: Option[RNum], b: Option[RNum]) : Option[RNum] =
   if a.isSome and b.isSome:
     return some(a.get() * b.get())
   else:
-    return none(int)
+    return none(RNum)
 
-proc calcDiv(a: Option[int], b: Option[int]) : Option[int] =
+proc calcDiv(a: Option[RNum], b: Option[RNum]) : Option[RNum] =
   if a.isSome and b.isSome:
-    if b.get() == 0 or (a.get() mod b.get() != 0):
-      return none(int)
-    return some(a.get() div b.get())
+    if b.get() == zero or (a.get() mod b.get() != zero):
+      return none(RNum)
+    return some(a.get() / b.get())
   else:
-    return none(int)
+    return none(RNum)
 
-proc calc(f:Formula) : Option[int] =
+proc calc(f:Formula) : Option[RNum] =
   case f.kind
   of fNum:
     result = some(f.value)
@@ -110,7 +117,7 @@ proc calc(f:Formula) : Option[int] =
     of opDiv:
       result = calcDiv(f.left.calc(), f.right.calc())
 
-proc buildFormulaTypes(numbers: seq[int], ops: seq[Binop]) : seq[Formula] =
+proc buildFormulaTypes(numbers: seq[RNum], ops: seq[Binop]) : seq[Formula] =
   assert numbers.len == 4
   assert ops.len == 3
 
@@ -149,14 +156,16 @@ proc buildFormulaTypes(numbers: seq[int], ops: seq[Binop]) : seq[Formula] =
   ]
 
 proc main() =
-  let inputs = @[3, 5, 7, 1]
+  let (a, b, c, d) = (paramStr(1), paramStr(2), paramStr(3), paramStr(4))
+  let inputs = @[a, b, c, d].map(parseInt).mapIt(Rational[int](num:it, den:1))
+
   let binopCombs = binopCombinations(3)
   for numbers in permutations(inputs):
     for ops in binopCombs:
       let forTypes = buildFormulaTypes(numbers, ops)
       for f in forTypes:
         let r = f.calc()
-        if r.isSome and r.get() == 24:
+        if r.isSome and r.get() == Rational[int](num:24, den:1):
           echo $f
           return
 
