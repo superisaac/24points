@@ -5,13 +5,11 @@ import strformat
 import sequtils
 import rationals
 
-import std/enumerate
-
 proc permutations[T](arr: seq[T]): seq[seq[T]] =
   if len(arr) <= 0:
     return @[]
 
-  for (i, e) in enumerate(arr):
+  for i, e in arr:
     let newarr = concat(arr[0..(i-1)],
                         arr[(i+1)..(arr.len-1)])
     assert newarr.len == arr.len - 1
